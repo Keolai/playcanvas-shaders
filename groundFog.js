@@ -45,6 +45,8 @@ function HFogEffect(graphicsDevice) {
             "uniform sampler2D uColorBuffer;",
             "uniform vec3 uFogColor;",
             "uniform vec3 uCameraPosition;",
+            "uniform float uFogDensity;",
+            "uniform float uFogHeight;",
 
             "void main() {",
             "    highp vec2 uv = vUv0; // variable_vertex.xy; // interpolated at pixel's center",
@@ -57,8 +59,8 @@ function HFogEffect(graphicsDevice) {
             "vec4 color = texture2D(uColorBuffer, uv);",
             "vec3 fogOrigin = uCameraPosition;",
             "vec3 fogDirection = normalize(uCameraView - fogOrigin);",
-            "float heightFactor = 0.05;",
-            "float fogDensity = 0.1;",
+            "float heightFactor = uFogHeight;",
+            "float fogDensity = uFogDensity;",
             "float fogFactor = heightFactor * exp(-fogOrigin.y * fogDensity) * (1.0 - exp(-fogDepth * fogDirection.y * fogDensity)) /fogDirection.y;",
             "fogFactor = clamp(fogFactor,0.0,1.0);",
             "",
@@ -84,6 +86,8 @@ Object.assign(HFogEffect.prototype, {
         scope.resolve("uResolution").setValue([device.width, device.height]);
         scope.resolve("uColorBuffer").setValue(inputTarget.colorBuffer);
         scope.resolve("uFogColor").setValue(this.fogColorArray);
+        scope.resolve("uFogDensity").setValue(this.fogDensity);
+         scope.resolve("uFogHeight").setValue(this.fogHeight);
         scope.resolve("uCameraPosition").setValue([this.cameraPos.x,this.cameraPos.y,this.cameraPos.z]);
         pc.drawFullscreenQuad(device, outputTarget, this.vertexBuffer, this.shader, rect);
     }
@@ -92,6 +96,21 @@ Object.assign(HFogEffect.prototype, {
 // ----------------- SCRIPT DEFINITION ------------------ //
 var heightFog = pc.createScript('heightFog');
 heightFog.attributes.add( 'fogColor', { type: 'rgb', default: [0, 0, 0], title: 'Fog Color' } );
+heightFog.attributes.add('fogDensity', {
+    type: 'number',
+    default: 0.1,
+    min: 0.0,
+    max: 1.0,
+    title: 'Fog Density'
+});
+
+heightFog.attributes.add('fogHeight', {
+    type: 'number',
+    default: 0.05,
+    min: 0.0,
+    max: 1.0,
+    title: 'Fog Height'
+});
 
 heightFog.prototype.initialize = function () {
 
@@ -102,6 +121,8 @@ heightFog.prototype.initialize = function () {
     const cameraPos = this.entity.getPosition();
 
     this.effect.cameraPos = cameraPos;
+    this.effect.fogDensity = this.fogDensity;
+    this.effect.fogHeight = this.fogHeight;
 
     this.on('attr', function (name, value) {
         this.effect[name] = value;
